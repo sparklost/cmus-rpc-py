@@ -68,7 +68,7 @@ If there are no tags, keep file song names as follows:
 or file name is just song name and parent directory is artist:  
 `<artist>/<title>.<extension>`  
 
-Large and small images can be changed by setting image name to use. [Available images](https://github.com/mzivic7/cmus-rpc-py/blob/main/assets/).
+Large and small images can be changed by setting image name to use. [Available images](https://github.com/sparklost/cmus-rpc-py/blob/main/assets/).
 
 ## Installing
 - From AUR: `yay -S cmus-rpc-py`
@@ -76,7 +76,7 @@ Large and small images can be changed by setting image name to use. [Available i
 `sudo cp dist/cmus-rpc-py /usr/local/sbin/`  
 
 ## Building
-1. Clone this repository: `git clone https://github.com/mzivic7/cmus-rpc-py`
+1. Clone this repository: `git clone https://github.com/sparklost/cmus-rpc-py`
 2. Install [pipenv](https://docs.pipenv.org/install/)
 3. `cd cmus-rpc-py`
 4. Install requirements: `pipenv install`
@@ -96,7 +96,7 @@ Launching gnome terminal (can be added as launcher):
 ```
 gnome-terminal --window -- /bin/sh -c "cmus-rpc-py -s & cmus"
 ```
-Launching with [cmus-auto-lyrics](https://github.com/mzivic7/cmus-auto-lyrics):  
+Launching with [cmus-auto-lyrics](https://github.com/sparklost/cmus-auto-lyrics):  
 ```
 bash -c "tmux new-session -s cmus -d -x '$(tput cols)' -y '$(tput lines)' $'cmus-rpc-py -s & cmus'; tmux split -h -l40 $'cmus-auto-lyrics -a'; tmux select-pane -t 0; tmux attach -t cmus"
 ```
