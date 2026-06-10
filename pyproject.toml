@@ -1,0 +1,15 @@
+[project]
+name = "cmus-rpc-py"
+version = "0.2.0"
+description = "Discord rich presence integration for cmus music player"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pypresence>=4.6.1",
+]
+
+[dependency-groups]
+build = [
+    "nuitka[onefile]>=4.1.2",
+    "pyinstaller>=6.20.0",
+]

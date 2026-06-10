@@ -330,13 +330,13 @@ def main(args):
     rpc.close()
 
 
-def sigint_handler(signum, frame):
+def sigint_handler(signum, frame):   # noqa
     """Handling Ctrl-C event"""
     sys.exit()
 
 
 def argparser():
-    """Sets up argument parser for CLI"""
+    """Setup argument parser for CLI"""
     parser = argparse.ArgumentParser(
         prog="cmus-rpc-py",
         description="Discord rich presence integration for cmus music player",
@@ -474,7 +474,7 @@ def argparser():
         "-v",
         "--version",
         action="version",
-        version="%(prog)s 0.1.2",
+        version="%(prog)s 0.2.0",
     )
     return parser.parse_args()
 

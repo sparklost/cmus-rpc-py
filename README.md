@@ -1,6 +1,7 @@
 # cmus-rpc-py
 Discord rich presence integration for [cmus](https://cmus.github.io) music player.
 
+
 ## Features
 - Custom details and state text
 - Formatted strings with cmus variables
@@ -12,6 +13,7 @@ Discord rich presence integration for [cmus](https://cmus.github.io) music playe
 - Shuts down when either cmus or Discord is closed
 - Optional custom Discord appid
 - Config
+
 
 ## Usage
 ```
@@ -45,6 +47,7 @@ options:
 
 ```
 
+
 ## Config
 If config path is provided, but file is not existing, default config will be created.  
 Config can have missing keys. They will be loaded from defaults instead.  
@@ -70,21 +73,35 @@ or file name is just song name and parent directory is artist:
 
 Large and small images can be changed by setting image name to use. [Available images](https://github.com/sparklost/cmus-rpc-py/blob/main/assets/).
 
+
 ## Installing
 - From AUR: `yay -S cmus-rpc-py`
 - Build, then copy built executable to system:  
-`sudo cp dist/cmus-rpc-py /usr/local/sbin/`  
+`sudo cp dist/cmus-rpc-py /usr/local/bin/`  
+
 
 ## Building
-1. Clone this repository: `git clone https://github.com/sparklost/cmus-rpc-py`
-2. Install [pipenv](https://docs.pipenv.org/install/)
+1. Clone this repository
+2. Install [uv](https://docs.astral.sh/uv/getting-started/installation/)
 3. `cd cmus-rpc-py`
-4. Install requirements: `pipenv install`
-5. build: `pipenv run python -m PyInstaller --noconfirm --onefile --windowed --clean --name "cmus-rpc-py" "main.py"`
+4. run build script: `python build.py`  
+5. To build with Nuitka, add `--nuitka` flag. More optimized, smaller executable, long compile time. See [Nuitka](#nuitka) for more info.  
+
+
+## Nuitka
+To enable building with Nuitka, add `--nuitka` flag (takes a long time).  
+Nuitka built binaries are more optimized.
+Optionally, add `--clang` flag to tell nuitka to compile using llvm, which might run even faster.  
+Nuitka requirements:
+- on Linux: GCC or clang and `patchelf` package
+- on Windows: [Visual Studio 2022](https://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx) or mingw (will be downloaded by nuitka)
+- on macOS install XCode via Apple Store
+
 
 ## Auto run when cmus is started
 append this line to `.bashrc` or `.zshrc`:  
 alias cmus = 'cmus-rpc-py -s & cmus'  
+
 
 ## Launcher
 Example launcher for cmus with cmus-rpc-py.  
