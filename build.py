@@ -11,8 +11,7 @@ PYTHON_MAX_MINOR = 14
 CUSTOM_CFLAGS = [
     "-DNDEBUG",
     "-g0",
-    "-O3",
-    "-march=x86-64",
+    "-O2",
     "-mtune=generic",
     "-fno-semantic-interposition",
     "-fno-strict-overflow",
@@ -29,9 +28,16 @@ CUSTOM_LDFLAGS = [
     "-Wl,--exclude-libs,ALL",
     # "-flto=thin",
 ]
+UNSAFE_FLAGS = [   # unsafe to use when building some libraries
+    "-fvisibility=hidden",
+]
 CFLAGS_OLD = os.environ.get("CFLAGS", "")
 CXXFLAGS_OLD = os.environ.get("CFLAGS", "")
 LDFLAGS_OLD = os.environ.get("CFLAGS", "")
+
+RED = "\033[1;31m"
+PURPLE = "\033[1;35m"
+
 
 def get_app_name():
     """Get app name from pyproject.toml"""
@@ -59,6 +65,19 @@ def get_version_number():
     sys.exit(1)
 
 
+def supports_color():
+    """Return True if the running terminal supports ANSI colors"""
+    if sys.platform == "win32":
+        return (os.getenv("ANSICON") is not None or
+            os.getenv("WT_SESSION") is not None or
+            os.getenv("TERM_PROGRAM") == "vscode" or
+            os.getenv("TERM") in ("xterm", "xterm-color", "xterm-256color")
+        )
+    if not sys.stdout.isatty():
+        return False
+    return os.getenv("TERM", "") != "dumb"
+
+
 def is_gil_enabled():
     """Safely check if GIL is enabled"""
     try:
@@ -73,27 +92,14 @@ def get_python_version():
         try:
             version_result = subprocess.run(["uv", "run", "--no-sync", "python", "-VV"], capture_output=True, text=True, check=True)
         except subprocess.CalledProcessError as e:
-            print(f"uv error: {e}", file=sys.stderr)
-            return sys.version_info.major, sys.version_info.minor, is_gil_enabled()
+            print(f"uv error: {e}", color_code=RED, prefix="", file=sys.stderr)
+            return sys.version_info.major, sys.version_info.minor, not is_gil_enabled()
         all_parts = version_result.stdout.strip().split(" ")
         version_parts = all_parts[1].split(".")
         if len(version_parts) < 2:
-            return sys.version_info.major, sys.version_info.minor, is_gil_enabled()
+            return sys.version_info.major, sys.version_info.minor, not is_gil_enabled()
         return int(version_parts[0]), int(version_parts[1]), "free-threading" in all_parts[2]
-    return sys.version_info.major, sys.version_info.minor, is_gil_enabled()
-
-
-def supports_color():
-    """Return True if the running terminal supports ANSI colors."""
-    if sys.platform == "win32":
-        return (os.getenv("ANSICON") is not None or
-            os.getenv("WT_SESSION") is not None or
-            os.getenv("TERM_PROGRAM") == "vscode" or
-            os.getenv("TERM") in ("xterm", "xterm-color", "xterm-256color")
-        )
-    if not sys.stdout.isatty():
-        return False
-    return os.getenv("TERM", "") != "dumb"
+    return sys.version_info.major, sys.version_info.minor, not is_gil_enabled()
 
 
 PKGNAME = get_app_name()
@@ -101,41 +107,42 @@ PKGVER = get_version_number()
 USE_COLOR = supports_color()
 
 
-def fprint(text, color_code="\033[1;35m", prefix=f"[{PKGNAME.capitalize()} Build Script]: "):
+def fprint(text, color="\033[1;35m", prefix=f"[{PKGNAME.capitalize()} Build Script]: ", file=sys.stdout):
     """Print colored text prefixed with text, default is light purple"""
-    if USE_COLOR:
-        print(f"{color_code}{prefix}{text}\033[0m")
+    if USE_COLOR and color:
+        print(f"{color}{prefix}{text}\033[0m", file=file, flush=True)
     else:
-        print(f"{prefix}{text}")
+        print(f"{prefix}{text}", file=file, flush=True)
+
+
+def iprint(text, indent=2, color=None):
+    """Print inented low importance text belonging to build step"""
+    if color:
+        fprint(text, prefix=(indent * " "), color=color)
+    else:
+        print(f"{indent * " "}{text}", flush=True)
 
 
 def check_python():
-    """Check python version and print warning, and return True if runing inside pure python (no uv)"""
+    """Check python version and print warning, and return True if running inside pure python (no uv)"""
     if sys.version_info.major != 3:
-        print(f"Python {sys.version_info.major} is not supported. Only Python 3 is supported.", file=sys.stderr)
+        fprint(f"Python {sys.version_info.major} is not supported. Only Python 3 is supported.", color=RED, prefix="", file=sys.stderr)
         sys.exit(1)
 
     if os.environ.get("UV", ""):
         if sys.version_info.minor < 12 or sys.version_info.minor > PYTHON_MAX_MINOR:
-            fprint(f'WARNING: Python {sys.version_info.major}.{sys.version_info.minor} is not supported but build may succeed. Run "python build.py" to let uv download and setup recommended temporary python interpreter.', color_code="\033[1;31m")
-        else:
-            try:
-                version = subprocess.run(["uv", "--version"], capture_output=True, text=True, check=True)
-                fprint(f"Using {version.stdout.strip()}")
-            except Exception:
-                pass
-            fprint(f"Using Python {sys.version}")
+            fprint(f'WARNING: Python {sys.version_info.major}.{sys.version_info.minor} is not supported but build may succeed. Run "python build.py" to let uv download and setup recommended temporary python interpreter.', color=RED)
         if not is_gil_enabled():
-            fprint("WARNING: Freethreaded build may fail or built binary may crash.", color_code="\033[1;31m")
+            fprint("WARNING: Freethreaded build may fail or built binary may crash.", color=RED)
         return False
 
     try:
-        version = subprocess.run(["uv", "--version"], capture_output=True, text=True, check=True)
+        subprocess.run(["uv", "--version"], capture_output=True, text=True, check=True)
     except subprocess.CalledProcessError as e:
-        print(f"uv error: {e}", file=sys.stderr)
+        fprint(f"uv error: {e}", color=RED, prefix="", file=sys.stderr)
         sys.exit(1)
     except FileNotFoundError:
-        print("uv command not found, please ensure uv is installed and in PATH", file=sys.stderr)
+        fprint("uv command not found, please ensure uv is installed and in PATH", color=RED, prefix="", file=sys.stderr)
         sys.exit(1)
     return True
 
@@ -162,26 +169,37 @@ def check_dev():
         subprocess.run(["uv", "sync", "--group", "build"], check=True)
 
 
-def setup_compiler(clang, clear=False, overwrite=False, cflags=[], ldflags=[], cxxflags=[]):
+def setup_compiler(clang, clear=False, overwrite=False, cflags=[], ldflags=[], cxxflags=[], safe=False, lld=True, exclude=True):
     """Set compiler and its flags in environment variables"""
     if clang:
         os.environ["CC"] = "clang"
         os.environ["CXX"] = "clang++"
-        os.environ["LD"] = "lld"
+        if shutil.which("lld") and clang and lld:
+            os.environ["LD"] = "lld"
     if clear:
         os.environ["CFLAGS"] = CFLAGS_OLD
         os.environ["CXXFLAGS"] = CXXFLAGS_OLD
         os.environ["LDFLAGS"] = LDFLAGS_OLD
         return [], [], []
-    cflags = ([] if overwrite else CFLAGS_OLD.split(" ")) + CUSTOM_CFLAGS + cflags
+    unsafe_flags = UNSAFE_FLAGS
+    if sys.platform == "win32" and not clang:   # unsupported flags in cl
+        unsafe_flags += ["-g0", "-O3", "-mtune=generic", "-fno-semantic-interposition", "-fno-strict-overflow"]
+        safe = True
+    skip_mtune = "-mtune=" in CFLAGS_OLD
+    custom_cflags = [item for item in CUSTOM_CFLAGS if item not in unsafe_flags and not (skip_mtune and item.starswith("-mtune"))] if safe else CUSTOM_CFLAGS
+    custom_ldflgs = [item for item in CUSTOM_LDFLAGS if "exclude-libs" not in item] if not exclude else CUSTOM_LDFLAGS
+    cflags = ([] if overwrite else CFLAGS_OLD.split(" ")) + custom_cflags + cflags
     cxxflags = ([] if overwrite else CXXFLAGS_OLD.split(" ")) + CUSTOM_CXXFLAGS + cxxflags
-    ldflags = ([] if overwrite else LDFLAGS_OLD.split(" ")) + CUSTOM_LDFLAGS + ldflags
-    if shutil.which("lld") and clang:
+    ldflags = ([] if overwrite else LDFLAGS_OLD.split(" ")) + custom_ldflgs + ldflags
+    if shutil.which("lld") and clang and lld:
         ldflags.append("-fuse-ld=lld")
     os.environ["CFLAGS"] = " ".join(cflags)
     os.environ["CXXFLAGS"] = " ".join(cxxflags)
     os.environ["LDFLAGS"] = " ".join(ldflags)
+    if not lld:
+        os.environ["LD"] = ""
     return cflags, cxxflags, ldflags
+
 
 
 def build_with_pyinstaller(onedir):
@@ -236,6 +254,7 @@ def build_with_nuitka(onedir, clang, mingw, print_cmd=False):
     """Build with nuitka"""
     clang = clang or os.environ.get("CC") == "clang"
     pkgname = get_app_name()
+    static_python = False
 
     mode = "--standalone" if onedir else "--onefile"
     compiler = ""
@@ -243,12 +262,16 @@ def build_with_nuitka(onedir, clang, mingw, print_cmd=False):
         compiler = "--clang"
     elif mingw:
         compiler = "--mingw64"
-    python_flags = ["--python-flag=-OO"]
+    python_flags = [
+        "--python-flag=no_asserts",
+        "--python-flag=no_docstrings",
+        "--python-flag=no_site",
+    ]
     hidden_imports = []
     exclude_imports = []
     package_data = []
 
-    setup_compiler(clang)
+    setup_compiler(clang, exclude=False)
 
     # options
     if clang:
@@ -276,6 +299,11 @@ def build_with_nuitka(onedir, clang, mingw, print_cmd=False):
         *exclude_imports,
         *package_data,
         *options,
+        "--static-libpython=yes" if static_python else "",
+        "--no-prefer-source-code",
+        "--onefile-tempdir-spec={TEMP}/cmus-rpc-py_{PID}",
+        "--company-name=SparkLost",
+        f"--product-name={PKGNAME}",
         "--remove-output",
         "--output-dir=dist",
         f"--output-filename={pkgname}",
@@ -312,7 +340,7 @@ def parser():
     parser.add_argument(
         "--nuitka",
         action="store_true",
-        help="build with nuitka, takes a long time, but more optimized executable",
+        help="build with nuitka instead of pyinstaller, needs compiler but produces more optimized executable",
     )
     parser.add_argument(
         "--noclang",
@@ -332,7 +360,7 @@ def parser():
     parser.add_argument(
         "--nobuild",
         action="store_true",
-        help="only configure environment, but dont build endcord",
+        help="only configure environment, but dont build",
     )
     parser.add_argument(
         "--print-cmd",

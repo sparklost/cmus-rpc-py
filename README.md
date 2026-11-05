@@ -3,7 +3,9 @@ Discord rich presence integration for [cmus](https://cmus.github.io) music playe
 
 
 ## Features
+- Progress bar
 - Custom details and state text
+- Show album art from last.fm (API key required) or MusicBrainz
 - Formatted strings with cmus variables
 - Can extract song artist and title from file path
 - Optional custom buttons with url
@@ -17,9 +19,9 @@ Discord rich presence integration for [cmus](https://cmus.github.io) music playe
 
 ## Usage
 ```
-usage: cmus-rpc-py [-h] [-a APPID] [-i INTERVAL] [-c CONFIG] [-s] [-t] [-o]
-                   [--large-image LARGE_IMAGE] [--playing-image PLAYING_IMAGE]
-                   [--paused-image PAUSED_IMAGE] [--details-text DETAILS_TEXT]
+usage: cmus-rpc-py [-h] [-a APPID] [-i INTERVAL] [-c CONFIG] [-s] [--no-time] [-k] [--no-album-art]
+                   [--lastfm-key LASTFM_KEY] [--art-resolution ART_RESOLUTION] [--large-image LARGE_IMAGE]
+                   [--playing-image PLAYING_IMAGE] [--paused-image PAUSED_IMAGE] [--details-text DETAILS_TEXT]
                    [--state-text STATE_TEXT] [--button-one BUTTON_ONE] [--button-two BUTTON_TWO]
                    [--button-url-one BUTTON_URL_ONE] [--button-url-two BUTTON_URL_TWO] [-d] [-v]
 
@@ -29,10 +31,13 @@ options:
   -h, --help            show this help message and exit
   -a, --appid           custom Discord app ID
   -i, --interval        custom interval for updating the presence (min 5s)
-  -c, --config          custom path to config_path file
+  -c, --config CONFIG   custom path to config file, if file does not exist, config with defaults wil be created
   -s, --silent          surpass all prints
-  -t, --timestamp       show timestamp
-  -o, --song-time       show song position time instead timestamp
+  --no-time             don't show playing time nor progress bar
+  -k, --no-unknown      don't use Unknown when there are no tags
+  --no-album-art        don't get album art url from last.fm or MusicBrainz and use it as large image
+  --lastfm-key          last.fm API key, without it only MusicBrainz is used
+  --art-resolution      preferred resolution of album art image
   --large-image         custom large image
   --playing-image       custom playing image
   --paused-image        custom paused image
@@ -44,7 +49,6 @@ options:
   --button-url-two      custom url second button
   -d, --debug           enable debug mode
   -v, --version         show program's version number and exit
-
 ```
 
 
@@ -85,7 +89,7 @@ Large and small images can be changed by setting image name to use. [Available i
 2. Install [uv](https://docs.astral.sh/uv/getting-started/installation/)
 3. `cd cmus-rpc-py`
 4. run build script: `python build.py`  
-5. To build with Nuitka, add `--nuitka` flag. More optimized, smaller executable, long compile time. See [Nuitka](#nuitka) for more info.  
+5. To build with Nuitka, add `--nuitka` flag. More optimized, smaller executable, needs compiler. See [Nuitka](#nuitka) for more info.  
 
 
 ## Nuitka
